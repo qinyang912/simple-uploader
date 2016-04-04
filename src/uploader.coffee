@@ -7,13 +7,15 @@ class Uploader extends SimpleModule
     url: ''
     params: null
     fileKey: 'upload_file'
-    connectionCount: 3
+    connectionCount: 3,
+    maxRetry: 3, # 阿里云上传失败时，有三次重试机会，只对阿里云有效
+    ALY_OSS_UPLOAD: null # 如果ALY_OSS_UPLOAD配置存在，则直接用ALY_OSS_UPLOAD来上传
 
   _init: ->
     @files = [] #files being uploaded
     @queue = [] #files waiting to be uploaded
     @id = ++ Uploader.count
-
+    console.log('@opts', @opts);
     # upload the files in the queue
     @on 'uploadcomplete', (e, file) =>
       @files.splice($.inArray(file, @files), 1)
@@ -54,6 +56,7 @@ class Uploader extends SimpleModule
 
     $.extend(file, opts)
 
+
     if @files.length >= @opts.connectionCount
       @queue.push file
       return
@@ -61,7 +64,10 @@ class Uploader extends SimpleModule
     return if @triggerHandler('beforeupload', [file]) == false
 
     @files.push file
-    @_xhrUpload file
+    if @opts.ALY_OSS_UPLOAD
+      @_ALY_OSS_UPLOAD file
+    else
+      @_xhrUpload file
     @uploading = true
 
   getFile: (fileObj) ->
@@ -78,12 +84,28 @@ class Uploader extends SimpleModule
     size: fileObj.fileSize ? fileObj.size
     ext: if name then name.split('.').pop().toLowerCase() else ''
     obj: fileObj
+  _ALY_OSS_UPLOAD: (file) ->
+    console.log('_ALY_OSS_UPLOAD file', file);
+    @opts.ALY_OSS_UPLOAD.upload
+      file: file.obj
+      key: (new Date()).getTime() + file.name
+      maxRetry: @opts.maxRetry
+      onprogress: (res) =>
+        @trigger 'uploadprogress', [file, res.loaded, res.total]
+      onerror: (err) =>
+        @trigger 'uploaderror', [file, err]
+      oncomplete: (res) =>
+        console.log('oncomplete', res)
+        @trigger 'uploadprogress', [file, file.size, file.size]
+        @trigger 'uploadsuccess', [file, res]
+        $(document).trigger 'uploadsuccess', [file, res, @]
+        @trigger 'uploadcomplete', [file, res]
 
   _xhrUpload: (file) ->
     formData = new FormData()
     formData.append(file.fileKey, file.obj)
     formData.append("original_filename", file.name)
-    formData.append(k, v) for k, v of file.params if file.params
+    formData.append(k, v) for k, v of file.params if file.params    
 
     file.xhr = $.ajax
       url: file.url
