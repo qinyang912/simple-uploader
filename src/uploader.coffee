@@ -15,7 +15,6 @@ class Uploader extends SimpleModule
     @files = [] #files being uploaded
     @queue = [] #files waiting to be uploaded
     @id = ++ Uploader.count
-    console.log('@opts', @opts);
     # upload the files in the queue
     @on 'uploadcomplete', (e, file) =>
       @files.splice($.inArray(file, @files), 1)

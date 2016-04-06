@@ -15,7 +15,6 @@
   "main": "lib/uploader.js",
   "homepage": "https://github.com/mycolorway/simple-uploader",
   "dependencies": {
-    "jquery": "2.x",
     "simple-module": "~2.0.5"
   },
   "devDependencies": {
