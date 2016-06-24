@@ -85,9 +85,10 @@ class Uploader extends SimpleModule
     obj: fileObj
   _ALY_OSS_UPLOAD: (file) ->
     console.log('_ALY_OSS_UPLOAD file', file);
+    key = (new Date()).getTime() + file.name
     @opts.ALY_OSS_UPLOAD.upload
       file: file.obj
-      key: (new Date()).getTime() + file.name
+      key: key
       maxRetry: @opts.maxRetry
       onprogress: (res) =>
         @trigger 'uploadprogress', [file, res.loaded, res.total]
@@ -95,6 +96,8 @@ class Uploader extends SimpleModule
         @trigger 'uploaderror', [file, err]
       oncomplete: (res) =>
         console.log('oncomplete', res)
+        res.success = true
+        res.key     = key
         @trigger 'uploadprogress', [file, file.size, file.size]
         @trigger 'uploadsuccess', [file, res]
         $(document).trigger 'uploadsuccess', [file, res, @]
