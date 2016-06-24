@@ -98,6 +98,7 @@ class Uploader extends SimpleModule
         console.log('oncomplete', res)
         res.success = true
         res.key     = key
+        res.ALY     = true
         @trigger 'uploadprogress', [file, file.size, file.size]
         @trigger 'uploadsuccess', [file, res]
         $(document).trigger 'uploadsuccess', [file, res, @]
