@@ -9,7 +9,7 @@ class Uploader extends SimpleModule
     fileKey: 'upload_file'
     connectionCount: 3,
     maxRetry: 3, # 阿里云上传失败时，有三次重试机会，只对阿里云有效
-    ALY_OSS_UPLOAD: null # 如果ALY_OSS_UPLOAD配置存在，则直接用ALY_OSS_UPLOAD来上传
+    ALY_OSS_UPLOAD: null, # 如果ALY_OSS_UPLOAD配置存在，则直接用ALY_OSS_UPLOAD来上传
 
   _init: ->
     @files = [] #files being uploaded
@@ -84,26 +84,23 @@ class Uploader extends SimpleModule
     ext: if name then name.split('.').pop().toLowerCase() else ''
     obj: fileObj
   _ALY_OSS_UPLOAD: (file) ->
-    console.log('_ALY_OSS_UPLOAD file', file);
-    key = (new Date()).getTime() + file.name
-    @opts.ALY_OSS_UPLOAD.upload
-      file: file.obj
-      key: key
-      maxRetry: @opts.maxRetry
-      onprogress: (res) =>
-        @trigger 'uploadprogress', [file, res.loaded, res.total]
+    key = Date.now() + file.name
+
+    @opts.ALY_OSS_UPLOAD
+      name: key
+      blob: file.obj
+      onprogress: (percent, cpt, res) =>
+        @trigger 'uploadprogress', [file, percent]
       onerror: (err) =>
         @trigger 'uploaderror', [file, err]
       oncomplete: (res) =>
-        console.log('oncomplete', res)
         res.success = true
-        res.key     = key
+        res.key     = res.name
         res.ALY     = true
-        @trigger 'uploadprogress', [file, file.size, file.size]
+        @trigger 'uploadprogress', [file, 1]
         @trigger 'uploadsuccess', [file, res]
         $(document).trigger 'uploadsuccess', [file, res, @]
         @trigger 'uploadcomplete', [file, res]
-
   _xhrUpload: (file) ->
     formData = new FormData()
     formData.append(file.fileKey, file.obj)
